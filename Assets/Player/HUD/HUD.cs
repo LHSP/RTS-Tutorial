@@ -1,29 +1,54 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 using RTS;
 
 public class HUD : MonoBehaviour {
 
+	private const int ORDERS_BAR_WIDTH = 150, RESOURCE_BAR_HEIGHT = 40;
+	private const int SELECTION_NAME_HEIGHT = 20;
+	private const int ICON_WIDTH = 32, ICON_HEIGHT = 32, TEXT_WIDTH = 128, TEXT_HEIGHT = 32;
+
+
 	public GUISkin resourceSkin, ordersSkin, selectBoxSkin;
 	public GUISkin mouseCursorSkin;
-
 	public Texture2D activeCursor;
 	public Texture2D selectCursor, leftCursor, rightCursor, upCursor, downCursor;
 	public Texture2D[] moveCursors, attackCursors, harvestCursors;
-	
-	private const int ORDERS_BAR_WIDTH = 150, RESOURCE_BAR_HEIGHT = 40;
-	private const int SELECTION_NAME_HEIGHT = 20;
+	public Texture2D[] resources;
+
 
 	private CursorState activeCursorState;
 	private int currentFrame = 0;
-
+	private Dictionary< ResourceType, int > resourceValues, resourceLimits;
 	private Player player;
+	private Dictionary< ResourceType, Texture2D > resourceImages;
 
 	// Use this for initialization
 	void Start () {
+		resourceValues = new Dictionary< ResourceType, int >();
+		resourceLimits = new Dictionary< ResourceType, int >();
+
 		player = transform.root.GetComponent<Player>();
 		ResourceManager.StoreSelectBoxItems(selectBoxSkin);
 		SetCursorState(CursorState.Select);
+
+		resourceImages = new Dictionary< ResourceType, Texture2D >();
+		for(int i = 0; i < resources.Length; i++) {
+			switch(resources[i].name) {
+			case "Money":
+				resourceImages.Add(ResourceType.Money, resources[i]);
+				resourceValues.Add(ResourceType.Money, 0);
+				resourceLimits.Add(ResourceType.Money, 0);
+				break;
+			case "Power":
+				resourceImages.Add(ResourceType.Power, resources[i]);
+				resourceValues.Add(ResourceType.Power, 0);
+				resourceLimits.Add(ResourceType.Power, 0);
+				break;
+			default: break;
+			}
+		}
 	}
 
 	void OnGUI () {
@@ -51,6 +76,13 @@ public class HUD : MonoBehaviour {
 		GUI.skin = resourceSkin;
 		GUI.BeginGroup(new Rect(0,0,Screen.width,RESOURCE_BAR_HEIGHT));
 		GUI.Box(new Rect(0,0,Screen.width,RESOURCE_BAR_HEIGHT),"");
+
+		int topPos = 4, iconLeft = 4, textLeft = 70;
+		DrawResourceIcon(ResourceType.Money, iconLeft, textLeft, topPos);
+		iconLeft += TEXT_WIDTH;
+		textLeft += TEXT_WIDTH;
+		DrawResourceIcon(ResourceType.Power, iconLeft, textLeft, topPos);
+
 		GUI.EndGroup();
 	}
 
@@ -67,6 +99,7 @@ public class HUD : MonoBehaviour {
 		return new Rect (0, RESOURCE_BAR_HEIGHT, Screen.width - ORDERS_BAR_WIDTH, Screen.height - RESOURCE_BAR_HEIGHT);
 	}
 
+	#region Cursor Handling
 	private void DrawMouseCursor() {
 		bool mouseOverHud = !MouseInBounds() && activeCursorState != CursorState.PanRight && activeCursorState != CursorState.PanUp;
 		if(mouseOverHud) {
@@ -143,5 +176,18 @@ public class HUD : MonoBehaviour {
 			break;
 		default: break;
 		}
+	}
+	#endregion
+
+	public void SetResourceValues(Dictionary< ResourceType, int > resourceValues, Dictionary< ResourceType, int > resourceLimits) {
+		this.resourceValues = resourceValues;
+		this.resourceLimits = resourceLimits;
+	}
+
+	private void DrawResourceIcon(ResourceType type, int iconLeft, int textLeft, int topPos) {
+		Texture2D icon = resourceImages[type];
+		string text = resourceValues[type].ToString() + "/" + resourceLimits[type].ToString();
+		GUI.DrawTexture(new Rect(iconLeft, topPos, ICON_WIDTH, ICON_HEIGHT), icon);
+		GUI.Label (new Rect(textLeft, topPos, TEXT_WIDTH, TEXT_HEIGHT), text);
 	}
 }
